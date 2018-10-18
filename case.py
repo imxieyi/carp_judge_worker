@@ -50,6 +50,8 @@ class CARPCase:
         self.time = config['time']
         self.memory = config['memory']
         self.cpu = config['cpu']
+        if self.entry == '':
+            raise ArchiveError('No entry point')
         # Find program and data
         program_files = []
         data_files = []
