@@ -55,5 +55,28 @@ class TestForkBombCase(unittest.TestCase):
         self.loop.close()
 
 
+class TestOOMCase(unittest.TestCase):
+
+    def setUp(self):
+        with open('./examples/data_oom.zip', 'rb') as zipfile:
+            self.case = CARPCase(zipfile.read()).__enter__()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+
+    def test_run(self):
+        async def run_main():
+            timedout, logs, exitcode = await self.case.run()
+            logs = logs.decode('utf8')
+            print(logs)
+            self.assertTrue('MemoryError' in logs)
+            self.assertFalse(timedout)
+            self.assertEqual(1, exitcode)
+        self.loop.run_until_complete(asyncio.wait([run_main()]))
+
+    def tearDown(self):
+        self.case.close()
+        self.loop.close()
+
+
 if __name__ == '__main__':
     unittest.main()
