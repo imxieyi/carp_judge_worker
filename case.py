@@ -5,8 +5,13 @@ import random
 import string
 import docker
 import asyncio
+import aiohttp
 from io import BytesIO
+from threading import Thread
 from zipfile import ZipFile
+
+from requests import ReadTimeout
+
 from errors import *
 
 IMAGE_NAME = 'carp_judge'
@@ -77,6 +82,16 @@ class CARPCase:
         self.parameters = self.parameters.replace('$memory', str(self.memory))
         return self
 
+    async def _wait_container(self):
+        with aiohttp.UnixConnector('/var/run/docker.sock') as conn:
+            timeout = aiohttp.ClientTimeout(total=self.time)
+            async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
+                async with session.post('http://localhost/containers/{}/wait'.format(self._container.id)) as resp:
+                    try:
+                        return False, await resp.json()
+                    except asyncio.TimeoutError:
+                        return True, None
+
     async def run(self):
         if self._container is not None:
             raise SandboxError('Container already exists!')
@@ -88,8 +103,9 @@ class CARPCase:
         self._container = _docker_client.containers.run(
             image=IMAGE_NAME,
             command=command,
-            auto_remove=True,
+            auto_remove=False,
             detach=True,
+            read_only=True,
             nano_cpus=self.cpu * 1000000000,
             mem_limit=str(self.memory) + 'm',
             memswap_limit=str(self.memory) + 'm',
@@ -101,20 +117,20 @@ class CARPCase:
             stdout=True,
             stderr=True
         )
-        timeremains = float(self.time)
-        while timeremains > 0. and self._container.status == 'running':
-            await asyncio.sleep(0.5)
-            timeremains -= 0.5
-        if self._container.status == 'running':
-            self._container.kill()
-            timedout = True
-        else:
-            timedout = False
-        logs = self._container.logs(
-            stdout=True,
-            stderr=True
-        )
-        return timedout, logs, self._container.wait()
+        try:
+            timedout, response = await self._wait_container()
+            statuscode = -1
+            if timedout:
+                self._container.kill()
+            else:
+                statuscode = response['StatusCode']
+            logs = self._container.logs(
+                stdout=True,
+                stderr=True
+            )
+        finally:
+            self._container.remove(force=True)
+        return timedout, logs, statuscode
 
     def close(self):
         shutil.rmtree(self._tempdir, ignore_errors=True)
