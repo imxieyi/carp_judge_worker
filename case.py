@@ -116,7 +116,7 @@ class CARPCase:
             pids_limit=64,
             network_mode='none',
             stop_signal='SIGKILL',
-            volumes={self._tempdir: {'bind': SANDBOX_TMP_DIR, 'mode': 'rw'}},
+            volumes={self._tempdir: {'bind': SANDBOX_TMP_DIR, 'mode': 'ro'}},
             stdout=stdout,
             stderr=stderr,
             log_config={
