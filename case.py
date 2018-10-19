@@ -29,7 +29,8 @@ def id_generator(size=8, chars=string.ascii_letters + string.digits):
 
 
 class CARPCase:
-    def __init__(self, zip_data):
+    def __init__(self, zip_data, jid=0):
+        self.jid = jid
         self._zipdata = zip_data
         self._tempdir = os.path.join(TMP_DIR, id_generator())
         self._container = None
