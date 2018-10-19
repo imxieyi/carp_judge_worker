@@ -21,11 +21,12 @@ class TestAPlusBCase(unittest.TestCase):
 
     def test_run(self):
         async def run_main():
-            timedout, logs, exitcode = await self.case.run()
-            logs = logs.decode('utf8')
-            print(logs)
+            timedout, stdout, stderr, exitcode = await self.case.run()
+            stdout = stdout.decode('utf8')
+            print(stdout)
             self.assertEqual(0, exitcode)
-            self.assertEqual('35', logs.strip())
+            self.assertEqual('35', stdout.strip())
+            self.assertEqual('', stderr.strip())
         self.loop.run_until_complete(asyncio.wait([run_main()]))
 
     def tearDown(self):
@@ -43,9 +44,9 @@ class TestForkBombCase(unittest.TestCase):
 
     def test_run(self):
         async def run_main():
-            timedout, logs, exitcode = await self.case.run()
-            logs = logs.decode('utf8')
-            print(logs)
+            timedout, stdout, stderr, exitcode = await self.case.run()
+            stderr = stderr.decode('utf8')
+            print(stderr)
             self.assertTrue(timedout)
             self.assertEqual(-1, exitcode)
         self.loop.run_until_complete(asyncio.wait([run_main()]))
@@ -65,12 +66,38 @@ class TestOOMCase(unittest.TestCase):
 
     def test_run(self):
         async def run_main():
-            timedout, logs, exitcode = await self.case.run()
-            logs = logs.decode('utf8')
-            print(logs)
-            self.assertTrue('MemoryError' in logs)
+            timedout, stdout, stderr, exitcode = await self.case.run()
+            stderr = stderr.decode('utf8')
+            print(stderr)
+            self.assertTrue('MemoryError' in stderr)
             self.assertFalse(timedout)
             self.assertEqual(1, exitcode)
+        self.loop.run_until_complete(asyncio.wait([run_main()]))
+
+    def tearDown(self):
+        self.case.close()
+        self.loop.close()
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+class TestLogFloodCase(unittest.TestCase):
+
+    def setUp(self):
+        with open('./examples/data_outflood.zip', 'rb') as zipfile:
+            self.case = CARPCase(zipfile.read()).__enter__()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+
+    def test_run(self):
+        async def run_main():
+            timedout, stdout, stderr, exitcode = await self.case.run()
+            print(len(stdout))
+            print(len(stderr))
+            self.assertTrue(len(stdout) + len(stderr) < 2 * 1024 * 1024)
+            self.assertTrue(timedout)
         self.loop.run_until_complete(asyncio.wait([run_main()]))
 
     def tearDown(self):

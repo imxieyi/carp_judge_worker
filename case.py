@@ -95,7 +95,7 @@ class CARPCase:
                     except asyncio.TimeoutError:
                         return True, None
 
-    async def run(self):
+    async def run(self, stdout=True, stderr=True):
         if self._container is not None:
             raise SandboxError('Container already exists!')
         # Build command
@@ -117,8 +117,15 @@ class CARPCase:
             network_mode='none',
             stop_signal='SIGKILL',
             volumes={self._tempdir: {'bind': SANDBOX_TMP_DIR, 'mode': 'rw'}},
-            stdout=True,
-            stderr=True
+            stdout=stdout,
+            stderr=stderr,
+            log_config={
+                'config': {
+                    'mode': 'non-blocking',
+                    'max-size': '1m',
+                    'max-file': '2'
+                }
+            }
         )
         try:
             timedout, response = await self._wait_container()
@@ -127,13 +134,23 @@ class CARPCase:
                 self._container.kill()
             else:
                 statuscode = response['StatusCode']
-            logs = self._container.logs(
-                stdout=True,
-                stderr=True
-            )
+            if stdout:
+                _stdout = self._container.logs(
+                    stdout=True,
+                    stderr=False
+                )
+            else:
+                _stdout = b''
+            if stderr:
+                _stderr = self._container.logs(
+                    stdout=False,
+                    stderr=True
+                )
+            else:
+                _stderr = b''
         finally:
             self._container.remove(force=True)
-        return timedout, logs, statuscode
+        return timedout, _stdout, _stderr, statuscode
 
     def close(self):
         shutil.rmtree(self._tempdir, ignore_errors=True)

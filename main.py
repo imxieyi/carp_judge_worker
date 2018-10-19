@@ -39,14 +39,26 @@ async def __judge_worker():
             logging.info('Enter judge for id: ' + str(jid))
             with CARPCase(data, jid) as case:
                 logging.info('Start judge for id: ' + str(jid))
-                timedout, logs, exitcode = await case.run()
+                timedout, stdout, stderr, exitcode = await case.run(stdout=True, stderr=False)
                 logging.info('Judge finished: {}, {}'.format(timedout, exitcode))
-                logs = logs.decode('utf8')
+                stdout_overflow = False
+                stderr_overflow = False
+                stdout = stdout.decode('utf8')
+                stderr = stderr.decode('utf8')
+                if len(stdout) > config.log_limit_bytes:
+                    stdout = stdout[-config.log_limit_bytes:]
+                    stdout_overflow = True
+                if len(stderr) > config.log_limit_bytes:
+                    stderr = stderr[-config.log_limit_bytes:]
+                    stderr_overflow = True
                 ret = {
                     'type': msg_types.CASE_RESULT,
                     'payload': {
                         'timedout': timedout,
-                        'logs': logs,
+                        'stdout': stdout,
+                        'stdout_overflow': stdout_overflow,
+                        'stderr': stderr,
+                        'stderr_overflow': stderr_overflow,
                         'exitcode': exitcode
                     }
                 }
