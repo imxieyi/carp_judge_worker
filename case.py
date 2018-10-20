@@ -117,6 +117,7 @@ class CARPCase:
             network_mode='none',
             stop_signal='SIGKILL',
             volumes={self._tempdir: {'bind': SANDBOX_TMP_DIR, 'mode': 'ro'}},
+            working_dir=os.path.join(SANDBOX_TMP_DIR, 'program'),
             stdout=stdout,
             stderr=stderr,
             log_config={
