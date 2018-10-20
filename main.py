@@ -30,7 +30,7 @@ async def __message_handler():
             logging.error(e)
 
 
-async def __judge_worker():
+async def __judge_worker(idx):
     while True:
         obj = await judge_queue.get()
         try:
@@ -38,9 +38,9 @@ async def __judge_worker():
             data = base64.b85decode(obj['data'])
             logging.info('Enter judge for id: ' + str(jid))
             with CARPCase(data, jid) as case:
-                logging.info('Start judge for id: ' + str(jid))
+                logging.info('[{}]({}) Start judge'.format(idx, jid))
                 timedout, stdout, stderr, exitcode = await case.run(stdout=True, stderr=False)
-                logging.info('Judge finished: {}, {}'.format(timedout, exitcode))
+                logging.info('[{}]({}) Judge finished: {}, {}'.format(idx, jid, timedout, exitcode))
                 stdout_overflow = False
                 stderr_overflow = False
                 stdout = stdout.decode('utf8')
@@ -64,9 +64,9 @@ async def __judge_worker():
                 }
                 await send_queue.put(json.dumps(ret))
         except ArchiveError as e:
-            logging.error(e)
+            logging.error('[{}] {}'.format(idx, e))
         except Exception as e:
-            logging.error(e)
+            logging.error('[{}] {}'.format(idx, e))
             traceback.print_exc()
 
 
@@ -108,8 +108,8 @@ async def main():
                 dispatcher_task = asyncio.ensure_future(__message_dispatcher(ws))
                 receiver_task = asyncio.ensure_future(__message_receiver(ws))
                 judge_tasks = []
-                for _ in range(config.parallel_judge_tasks):
-                    judge_tasks.append(asyncio.ensure_future(__judge_worker()))
+                for i in range(config.parallel_judge_tasks):
+                    judge_tasks.append(asyncio.ensure_future(__judge_worker(i)))
                 asyncio.get_event_loop().create_task(__fake_server())
                 done, pending = await asyncio.wait(
                     [handler_task, dispatcher_task, receiver_task] + judge_tasks,
