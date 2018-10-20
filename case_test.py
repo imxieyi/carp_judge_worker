@@ -23,7 +23,9 @@ class TestAPlusBCase(unittest.TestCase):
         async def run_main():
             timedout, stdout, stderr, exitcode = await self.case.run()
             stdout = stdout.decode('utf8')
+            stderr = stderr.decode('utf8')
             print(stdout)
+            print(stderr)
             self.assertEqual(0, exitcode)
             self.assertEqual('35', stdout.strip())
             self.assertEqual('', stderr.strip())
