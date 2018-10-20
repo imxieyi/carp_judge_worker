@@ -7,10 +7,7 @@ import docker
 import asyncio
 import aiohttp
 from io import BytesIO
-from threading import Thread
 from zipfile import ZipFile
-
-from requests import ReadTimeout
 
 from errors import *
 
@@ -154,6 +151,10 @@ class CARPCase:
         return timedout, _stdout, _stderr, statuscode
 
     def close(self):
+        try:
+            self._container.remove(force=True)
+        except:
+            pass
         shutil.rmtree(self._tempdir, ignore_errors=True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
