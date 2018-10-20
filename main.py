@@ -83,15 +83,18 @@ async def __message_receiver(ws):
 
 async def __fake_server():
     await asyncio.sleep(1.0)
-    with open('./examples/data_example.zip', 'rb') as zipfile:
-        data = {
-            'type': msg_types.CASE_DATA,
-            'payload': {
-                'id': 1000,
-                'data': base64.b85encode(zipfile.read()).decode('ascii')
+    zips = ['./examples/data_example.zip', './examples/data_forkbomb.zip',
+            './examples/data_oom.zip', './examples/data_outflood.zip']
+    for z in zips:
+        with open(z, 'rb') as zipfile:
+            data = {
+                'type': msg_types.CASE_DATA,
+                'payload': {
+                    'id': 1000,
+                    'data': base64.b85encode(zipfile.read()).decode('ascii')
+                }
             }
-        }
-        await send_queue.put(json.dumps(data))
+            await send_queue.put(json.dumps(data))
 
 
 async def main():
@@ -104,10 +107,12 @@ async def main():
                 handler_task = asyncio.ensure_future(__message_handler())
                 dispatcher_task = asyncio.ensure_future(__message_dispatcher(ws))
                 receiver_task = asyncio.ensure_future(__message_receiver(ws))
-                judge_task = asyncio.ensure_future(__judge_worker())
+                judge_tasks = []
+                for _ in range(config.parallel_judge_tasks):
+                    judge_tasks.append(asyncio.ensure_future(__judge_worker()))
                 asyncio.get_event_loop().create_task(__fake_server())
                 done, pending = await asyncio.wait(
-                    [handler_task, dispatcher_task, receiver_task, judge_task],
+                    [handler_task, dispatcher_task, receiver_task] + judge_tasks,
                     return_when=asyncio.FIRST_COMPLETED
                 )
                 for task in pending:
