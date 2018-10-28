@@ -2,6 +2,7 @@ import json
 import logging
 import coloredlogs
 import asyncio
+import aiohttp
 import base64
 import websockets
 import config
@@ -15,6 +16,7 @@ send_queue = asyncio.Queue()
 receive_queue = asyncio.Queue()
 judge_queue = asyncio.Queue()
 
+uid = None
 
 async def __message_handler():
     while True:
@@ -37,7 +39,7 @@ async def __judge_worker(idx):
         obj = await judge_queue.get()
         try:
             jid = obj['jid']
-            data = base64.b85decode(obj['data'])
+            data = base64.b64decode(obj['data'])
             logging.info('Enter judge for id: ' + str(jid))
             with CARPCase(data, jid) as case:
                 logging.info('[{}]({}) Start judge'.format(idx, jid))
@@ -88,25 +90,46 @@ async def __fake_server():
         with open(z, 'rb') as zipfile:
             data = {
                 'jid': 1000,
-                'data': base64.b85encode(zipfile.read()).decode('ascii')
+                'data': base64.b64encode(zipfile.read()).decode('ascii')
             }
             await send_queue.put(json.dumps(data))
 
 
 async def main():
+    global uid
     while True:
         try:
+            # Auth with server
+            timeout = aiohttp.ClientTimeout(total=10)
+            cookie = None
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                url = str.format(config.login_url, username=config.username, password=config.password)
+                while uid is None:
+                    try:
+                        async with session.get(url) as resp:
+                            obj = await resp.json()
+                            cookie = resp.headers['Set-Cookie']
+                            if obj['type'] != 200:
+                                logging.error('Invalid worker account!')
+                                return
+                            uid = obj['uid']
+                    except Exception as e:
+                        logging.error(e)
+                        await asyncio.sleep(5)
+            logging.info('Logged in as ' + uid)
+            logging.info('Cookie: ' + cookie)
             logging.info('Connecting to ' + config.server_url)
-            async with websockets.connect(config.server_url) as ws:
+            headers = {'Cookie': cookie}
+            async with websockets.connect(config.server_url, extra_headers=headers) as ws:
                 logging.info('Connected')
-                # TODO: Auth with server
+                # Create tasks
                 handler_task = asyncio.ensure_future(__message_handler())
                 dispatcher_task = asyncio.ensure_future(__message_dispatcher(ws))
                 receiver_task = asyncio.ensure_future(__message_receiver(ws))
                 judge_tasks = []
                 for i in range(config.parallel_judge_tasks):
                     judge_tasks.append(asyncio.ensure_future(__judge_worker(i)))
-                asyncio.get_event_loop().create_task(__fake_server())
+                # asyncio.get_event_loop().create_task(__fake_server())
                 done, pending = await asyncio.wait(
                     [handler_task, dispatcher_task, receiver_task] + judge_tasks,
                     return_when=asyncio.FIRST_COMPLETED
