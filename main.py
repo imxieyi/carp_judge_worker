@@ -7,6 +7,8 @@ import base64
 import websockets
 import config
 import traceback
+import time
+from msg_types import *
 from case import CARPCase
 from errors import *
 
@@ -18,18 +20,21 @@ judge_queue = asyncio.Queue()
 
 uid = None
 
+
 async def __message_handler():
     while True:
         message = await receive_queue.get()
         try:
             obj = json.loads(message)
-            if 'jid' not in obj:
-                logging.warning('jid not found')
-                continue
-            if 'data' not in obj:
-                logging.warning('data not found')
-                continue
-            await judge_queue.put(obj)
+            type = obj['type']
+            if type == CASE_DATA:
+                await judge_queue.put(obj['payload'])
+            elif type == WORKER_TICK:
+                obj = {'type': WORKER_TICK}
+                await send_queue.put(json.dumps(obj))
+            elif type == WORKER_INFO:
+                obj = {'type': WORKER_INFO, 'maxTasks': config.parallel_judge_tasks}
+                await send_queue.put(json.dumps(obj))
         except Exception as e:
             logging.error(e)
 
@@ -40,9 +45,15 @@ async def __judge_worker(idx):
         try:
             jid = obj['jid']
             data = base64.b64decode(obj['data'])
-            logging.info('Enter judge for id: ' + str(jid))
+            logging.info('Enter judge for id: ' + jid)
             with CARPCase(data, jid) as case:
                 logging.info('[{}]({}) Start judge'.format(idx, jid))
+                obj = {
+                    'type': CASE_START,
+                    'jid': jid,
+                    'timestamp': time.time()
+                }
+                await send_queue.put(json.dumps(obj))
                 timedout, stdout, stderr, exitcode = await case.run(stdout=True, stderr=False)
                 logging.info('[{}]({}) Judge finished: {}, {}'.format(idx, jid, timedout, exitcode))
                 stdout_overflow = False
@@ -56,12 +67,15 @@ async def __judge_worker(idx):
                     stderr = stderr[-config.log_limit_bytes:]
                     stderr_overflow = True
                 ret = {
+                    'jid': jid,
+                    'type': CASE_RESULT,
                     'timedout': timedout,
                     'stdout': stdout,
                     'stdout_overflow': stdout_overflow,
                     'stderr': stderr,
                     'stderr_overflow': stderr_overflow,
-                    'exitcode': exitcode
+                    'exitcode': exitcode,
+                    'timestamp': time.time()
                 }
                 await send_queue.put(json.dumps(ret))
         except ArchiveError as e:
@@ -99,7 +113,9 @@ async def main():
     global uid
     while True:
         try:
+            uid = None
             # Auth with server
+            logging.info('Logging in with username ' + config.username)
             timeout = aiohttp.ClientTimeout(total=10)
             cookie = None
             async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -114,7 +130,7 @@ async def main():
                                 return
                             uid = obj['uid']
                     except Exception as e:
-                        logging.error(e)
+                        logging.error('Connection failed: ' + str(e))
                         await asyncio.sleep(5)
             logging.info('Logged in as ' + uid)
             logging.info('Cookie: ' + cookie)
