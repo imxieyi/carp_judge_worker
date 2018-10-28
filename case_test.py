@@ -81,10 +81,6 @@ class TestOOMCase(unittest.TestCase):
         self.loop.close()
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class TestLogFloodCase(unittest.TestCase):
 
     def setUp(self):

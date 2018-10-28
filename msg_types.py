@@ -1,2 +1,0 @@
-CASE_DATA = 0
-CASE_RESULT = 1

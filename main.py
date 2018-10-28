@@ -5,7 +5,6 @@ import asyncio
 import base64
 import websockets
 import config
-import msg_types
 import traceback
 from case import CARPCase
 from errors import *
@@ -22,10 +21,13 @@ async def __message_handler():
         message = await receive_queue.get()
         try:
             obj = json.loads(message)
-            mtype = obj['type']
-            logging.debug('Message type: ' + str(mtype))
-            if mtype == msg_types.CASE_DATA:
-                await judge_queue.put(obj['payload'])
+            if 'jid' not in obj:
+                logging.warning('jid not found')
+                continue
+            if 'data' not in obj:
+                logging.warning('data not found')
+                continue
+            await judge_queue.put(obj)
         except Exception as e:
             logging.error(e)
 
@@ -34,7 +36,7 @@ async def __judge_worker(idx):
     while True:
         obj = await judge_queue.get()
         try:
-            jid = obj['id']
+            jid = obj['jid']
             data = base64.b85decode(obj['data'])
             logging.info('Enter judge for id: ' + str(jid))
             with CARPCase(data, jid) as case:
@@ -52,15 +54,12 @@ async def __judge_worker(idx):
                     stderr = stderr[-config.log_limit_bytes:]
                     stderr_overflow = True
                 ret = {
-                    'type': msg_types.CASE_RESULT,
-                    'payload': {
-                        'timedout': timedout,
-                        'stdout': stdout,
-                        'stdout_overflow': stdout_overflow,
-                        'stderr': stderr,
-                        'stderr_overflow': stderr_overflow,
-                        'exitcode': exitcode
-                    }
+                    'timedout': timedout,
+                    'stdout': stdout,
+                    'stdout_overflow': stdout_overflow,
+                    'stderr': stderr,
+                    'stderr_overflow': stderr_overflow,
+                    'exitcode': exitcode
                 }
                 await send_queue.put(json.dumps(ret))
         except ArchiveError as e:
@@ -88,11 +87,8 @@ async def __fake_server():
     for z in zips:
         with open(z, 'rb') as zipfile:
             data = {
-                'type': msg_types.CASE_DATA,
-                'payload': {
-                    'id': 1000,
-                    'data': base64.b85encode(zipfile.read()).decode('ascii')
-                }
+                'jid': 1000,
+                'data': base64.b85encode(zipfile.read()).decode('ascii')
             }
             await send_queue.put(json.dumps(data))
 
