@@ -130,7 +130,7 @@ async def main():
                                 return
                             uid = obj['uid']
                     except Exception as e:
-                        logging.error('Connection failed: ' + str(e))
+                        logging.error('Connection failed: ' + str(type(e)))
                         await asyncio.sleep(5)
             logging.info('Logged in as ' + uid)
             logging.info('Cookie: ' + cookie)
@@ -153,7 +153,7 @@ async def main():
                 for task in pending:
                     task.cancel()
         except Exception as e:
-            logging.error(e)
+            logging.error(str(type(e)))
         finally:
             logging.error('Disconnected, retry after 5 secs')
             await asyncio.sleep(5.0)
