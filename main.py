@@ -127,10 +127,13 @@ async def main():
             timeout = aiohttp.ClientTimeout(total=10)
             cookie = None
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                url = str.format(config.login_url, username=config.username, password=config.password)
                 while uid is None:
                     try:
-                        async with session.get(url) as resp:
+                        post_data = {
+                            'username': config.username,
+                            'password': config.password
+                        }
+                        async with session.post(config.login_url, json=post_data) as resp:
                             obj = await resp.json()
                             cookie = resp.headers['Set-Cookie']
                             if obj['type'] != 200:
