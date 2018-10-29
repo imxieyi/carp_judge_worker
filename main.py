@@ -134,9 +134,9 @@ async def main():
                         await asyncio.sleep(5)
             logging.info('Logged in as ' + uid)
             logging.info('Cookie: ' + cookie)
-            logging.info('Connecting to ' + config.server_url)
+            logging.info('Connecting to ' + config.websocket_url)
             headers = {'Cookie': cookie}
-            async with websockets.connect(config.server_url, extra_headers=headers) as ws:
+            async with websockets.connect(config.websocket_url, extra_headers=headers) as ws:
                 logging.info('Connected')
                 # Create tasks
                 handler_task = asyncio.ensure_future(__message_handler())

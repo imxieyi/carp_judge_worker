@@ -1,7 +1,7 @@
 import logging
 
 login_url = 'http://localhost:8080/api/login?username={username}&password={password}'
-server_url = 'ws://localhost:8765'
+websocket_url = 'ws://localhost:8765/api/websocket'
 username = 'user'
 password = 'password'
 log_level = logging.DEBUG
