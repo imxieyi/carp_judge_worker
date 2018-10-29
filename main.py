@@ -43,19 +43,19 @@ async def __judge_worker(idx):
     while True:
         obj = await judge_queue.get()
         try:
-            jid = obj['jid']
+            cid = obj['cid']
             data = base64.b64decode(obj['data'])
-            logging.info('Enter judge for id: ' + jid)
-            with CARPCase(data, jid) as case:
-                logging.info('[{}]({}) Start judge'.format(idx, jid))
+            logging.info('Enter judge for id: ' + cid)
+            with CARPCase(data, cid) as case:
+                logging.info('[{}]({}) Start judge'.format(idx, cid))
                 obj = {
                     'type': CASE_START,
-                    'jid': jid,
+                    'cid': cid,
                     'timestamp': time.time()
                 }
                 await send_queue.put(json.dumps(obj))
                 timedout, stdout, stderr, exitcode = await case.run(stdout=True, stderr=False)
-                logging.info('[{}]({}) Judge finished: {}, {}'.format(idx, jid, timedout, exitcode))
+                logging.info('[{}]({}) Judge finished: {}, {}'.format(idx, cid, timedout, exitcode))
                 stdout_overflow = False
                 stderr_overflow = False
                 stdout = stdout.decode('utf8')
@@ -67,7 +67,7 @@ async def __judge_worker(idx):
                     stderr = stderr[-config.log_limit_bytes:]
                     stderr_overflow = True
                 ret = {
-                    'jid': jid,
+                    'cid': cid,
                     'type': CASE_RESULT,
                     'timedout': timedout,
                     'stdout': stdout,
@@ -103,7 +103,7 @@ async def __fake_server():
     for z in zips:
         with open(z, 'rb') as zipfile:
             data = {
-                'jid': 1000,
+                'cid': 1000,
                 'data': base64.b64encode(zipfile.read()).decode('ascii')
             }
             await send_queue.put(json.dumps(data))
