@@ -33,7 +33,7 @@ async def __message_handler():
                 obj = {'type': WORKER_TICK}
                 await send_queue.put(json.dumps(obj))
             elif type == WORKER_INFO:
-                obj = {'type': WORKER_INFO, 'maxTasks': config.parallel_judge_tasks}
+                obj = {'uid': uid, 'type': WORKER_INFO, 'maxTasks': config.parallel_judge_tasks}
                 await send_queue.put(json.dumps(obj))
         except Exception as e:
             logging.error(e)
@@ -91,6 +91,14 @@ async def __message_dispatcher(ws):
         await ws.send(message)
 
 
+async def __tick_sender(ws):
+    obj = {'type': WORKER_TICK, 'uid': uid}
+    data = json.dumps(obj)
+    while True:
+        await asyncio.sleep(60)
+        await send_queue.put(data)
+
+
 async def __message_receiver(ws):
     async for message in ws:
         await receive_queue.put(message)
@@ -142,12 +150,13 @@ async def main():
                 handler_task = asyncio.ensure_future(__message_handler())
                 dispatcher_task = asyncio.ensure_future(__message_dispatcher(ws))
                 receiver_task = asyncio.ensure_future(__message_receiver(ws))
+                tick_task = asyncio.ensure_future(__tick_sender(ws))
                 judge_tasks = []
                 for i in range(config.parallel_judge_tasks):
                     judge_tasks.append(asyncio.ensure_future(__judge_worker(i)))
                 # asyncio.get_event_loop().create_task(__fake_server())
                 done, pending = await asyncio.wait(
-                    [handler_task, dispatcher_task, receiver_task] + judge_tasks,
+                    [handler_task, dispatcher_task, receiver_task, tick_task] + judge_tasks,
                     return_when=asyncio.FIRST_COMPLETED
                 )
                 for task in pending:
