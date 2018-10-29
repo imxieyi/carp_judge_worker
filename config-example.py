@@ -1,5 +1,6 @@
 import logging
 
+login_url = 'http://localhost:8080/api/login?username={username}&password={password}'
 server_url = 'ws://localhost:8765'
 username = 'user'
 password = 'password'
