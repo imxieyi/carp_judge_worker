@@ -135,13 +135,17 @@ async def main():
                         }
                         async with session.post(config.login_url, json=post_data) as resp:
                             obj = await resp.json()
-                            cookie = resp.headers['Set-Cookie']
-                            if obj['type'] != 200:
-                                logging.error('Invalid worker account!')
-                                return
-                            uid = obj['uid']
+                            if resp.status == 200:
+                                cookie = resp.headers['Set-Cookie']
+                                if obj['type'] != 300:
+                                    logging.error('Invalid worker account!')
+                                    return
+                                uid = obj['uid']
+                            else:
+                                logging.error('[{}] {}'.format(resp.status, obj['message']))
+                                await asyncio.sleep(5)
                     except Exception as e:
-                        logging.error('Connection failed: ' + str(type(e)))
+                        logging.error('Connection failed: ' + repr(e))
                         await asyncio.sleep(5)
             logging.info('Logged in as ' + uid)
             logging.info('Cookie: ' + cookie)
