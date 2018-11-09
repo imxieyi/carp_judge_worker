@@ -48,6 +48,7 @@ class CARPCase:
         self.time = config['time']
         self.memory = config['memory']
         self.cpu = config['cpu']
+        self.seed = config['seed']
         if self.entry == '':
             raise ArchiveError('No entry point')
         # Find program and data
@@ -80,6 +81,7 @@ class CARPCase:
         self.parameters = self.parameters.replace('$time', str(self.time))
         self.parameters = self.parameters.replace('$cpu', str(self.cpu))
         self.parameters = self.parameters.replace('$memory', str(self.memory))
+        self.parameters = self.parameters.replace('$seed', str(self.seed))
         return self
 
     async def _wait_container(self):
