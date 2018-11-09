@@ -54,7 +54,7 @@ async def __judge_worker(idx):
                     'timestamp': time.time()
                 }
                 await send_queue.put(json.dumps(obj))
-                timedout, stdout, stderr, exitcode = await case.run(stdout=True, stderr=False)
+                timedout, stdout, stderr, exitcode = await case.run(stdout=True, stderr=True)
                 logging.info('[{}]({}) Judge finished: {}, {}'.format(idx, cid, timedout, exitcode))
                 stdout_overflow = False
                 stderr_overflow = False
