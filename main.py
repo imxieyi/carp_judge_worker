@@ -104,19 +104,6 @@ async def __message_receiver(ws):
         await receive_queue.put(message)
 
 
-async def __fake_server():
-    await asyncio.sleep(1.0)
-    zips = ['./examples/data_example.zip', './examples/data_forkbomb.zip',
-            './examples/data_oom.zip', './examples/data_outflood.zip']
-    for z in zips:
-        with open(z, 'rb') as zipfile:
-            data = {
-                'cid': 1000,
-                'data': base64.b64encode(zipfile.read()).decode('ascii')
-            }
-            await send_queue.put(json.dumps(data))
-
-
 async def main():
     global uid
     while True:
