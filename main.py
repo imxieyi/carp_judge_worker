@@ -116,18 +116,26 @@ async def main():
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 while uid is None:
                     try:
-                        post_data = {
-                            'username': config.username,
-                            'password': config.password
-                        }
-                        async with session.post(config.login_url, json=post_data) as resp:
-                            obj = await resp.json()
-                            if resp.status == 200:
-                                cookie = resp.headers['Set-Cookie']
-                                if obj['type'] != 300:
-                                    logging.error('Invalid worker account!')
-                                    return
-                                uid = obj['uid']
+                        async with session.get(config.init_url) as iresp:
+                            if iresp.status == 200:
+                                cookie = iresp.headers['Set-Cookie']
+                                csrf_token = cookie.split('XSRF-TOKEN=')[1].split(';')[0]
+                                post_data = {
+                                    'username': config.username,
+                                    'password': config.password
+                                }
+                                headers = {'Cookie': cookie, 'X-XSRF-TOKEN': csrf_token}
+                                async with session.post(config.login_url, json=post_data, headers=headers) as resp:
+                                    cookie = resp.headers['Set-Cookie']
+                                    obj = await resp.json()
+                                    if resp.status == 200:
+                                        if obj['type'] != 300:
+                                            logging.error('Invalid worker account!')
+                                            return
+                                        uid = obj['uid']
+                                    else:
+                                        logging.error('[{}] {}'.format(resp.status, obj['message']))
+                                        await asyncio.sleep(5)
                             else:
                                 logging.error('[{}] {}'.format(resp.status, obj['message']))
                                 await asyncio.sleep(5)
@@ -157,6 +165,7 @@ async def main():
                     task.cancel()
         except Exception as e:
             logging.error(str(type(e)))
+            raise e
         finally:
             logging.error('Disconnected, retry after 5 secs')
             await asyncio.sleep(5.0)
