@@ -77,6 +77,8 @@ class CARPCase:
             if item[-1] == '/':
                 os.makedirs(new_path)
                 continue
+            outpath = os.path.join(self._tempdir, item)
+            os.makedirs(os.path.dirname(outpath), exist_ok=True)
             with open(os.path.join(self._tempdir, item), 'wb') as outfile:
                 with zipfile.open(item) as file:
                     data = file.read()
