@@ -144,7 +144,10 @@ class CARPCase:
             timedout, response = await self._wait_container()
             statuscode = -1
             if timedout:
-                self._container.kill()
+                try:
+                    self._container.kill()
+                except:
+                    pass
             else:
                 statuscode = response['StatusCode']
             if stdout:
