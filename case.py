@@ -43,7 +43,28 @@ class CARPCase:
         with zipfile.open('config.json') as file:
             config = json.loads(file.read())
         self.entry = config['entry']
-        self.data = config['data']
+        if 'data' in config:
+            self.data = config['data']
+        else:
+            self.data = ''
+        if 'network' in config:
+            self.network = config['network']
+        else:
+            self.network = ''
+        if 'seeds' in config:
+            self.seeds = config['seeds']
+        else:
+            self.seeds = ''
+        if 'seedCount' in config:
+            self.seedCount = config['seedCount']
+            if self.seedCount <= 0:
+                raise ArchiveError('Invalid seedCount')
+        else:
+            self.seedCount = 0
+        if 'model' in config:
+            self.model = config['model']
+        else:
+            self.model = ''
         self.parameters = config['parameters']
         self.time = config['time']
         self.memory = config['memory']
@@ -64,6 +85,10 @@ class CARPCase:
             raise ArchiveError('Entry file not found: ' + self.entry)
         if self.data != '' and ('data/' + self.data) not in data_files:
             raise ArchiveError('Data file not found: ' + self.data)
+        if self.network != '' and ('data/' + self.network) not in data_files:
+            raise ArchiveError('Network file not found: ' + self.network)
+        if self.seeds != '' and ('data/' + self.seeds) not in data_files:
+            raise ArchiveError('Seeds file not found: ' + self.seeds)
         # Prepare sandbox
         progdir = os.path.join(self._tempdir, 'program')
         if not os.path.exists(progdir):
@@ -85,7 +110,16 @@ class CARPCase:
                     data.replace(b'\r', b'')
                     outfile.write(data)
         # Prepare arguments
-        self.parameters = self.parameters.replace('$data', os.path.join(SANDBOX_TMP_DIR, 'data', self.data))
+        if self.data:
+            self.parameters = self.parameters.replace('$data', os.path.join(SANDBOX_TMP_DIR, 'data', self.data))
+        if self.network:
+            self.parameters = self.parameters.replace('$network', os.path.join(SANDBOX_TMP_DIR, 'data', self.network))
+        if self.seeds:
+            self.parameters = self.parameters.replace('$seeds', os.path.join(SANDBOX_TMP_DIR, 'data', self.seeds))
+        if self.seedCount:
+            self.parameters = self.parameters.replace('$seedCount', str(self.seedCount))
+        if self.model:
+            self.parameters = self.parameters.replace('$model', self.model)
         self.parameters = self.parameters.replace('$time', str(self.time))
         self.parameters = self.parameters.replace('$cpu', str(self.cpu))
         self.parameters = self.parameters.replace('$memory', str(self.memory))
