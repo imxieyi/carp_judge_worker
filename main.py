@@ -45,8 +45,10 @@ async def __judge_worker(idx):
         try:
             cid = obj['cid']
             data = base64.b64decode(obj['data'])
+            ctype = obj['type']
+            dataset = obj['dataset']
             logging.info('Enter judge for id: ' + cid)
-            with CARPCase(data, cid) as case:
+            with CARPCase(data, cid, ctype, dataset) as case:
                 logging.info('[{}]({}) Start judge'.format(idx, cid))
                 obj = {
                     'type': CASE_START,
@@ -66,6 +68,12 @@ async def __judge_worker(idx):
                 if len(stderr) > config.log_limit_bytes:
                     stderr = stderr[-config.log_limit_bytes:]
                     stderr_overflow = True
+                if ctype == IMP:
+                    valid, influence, reason = await case.check_imp_result()
+                else:
+                    valid = False
+                    influence = 0.
+                    reason = ''
                 ret = {
                     'cid': cid,
                     'type': CASE_RESULT,
@@ -75,7 +83,10 @@ async def __judge_worker(idx):
                     'stderr': stderr,
                     'stderr_overflow': stderr_overflow,
                     'exitcode': exitcode,
-                    'timestamp': time.time()
+                    'timestamp': time.time(),
+                    'valid': valid,
+                    'influence': influence,
+                    'reason': reason
                 }
                 await send_queue.put(json.dumps(ret))
         except ArchiveError as e:

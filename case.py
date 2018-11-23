@@ -8,6 +8,7 @@ import asyncio
 import aiohttp
 from io import BytesIO
 from zipfile import ZipFile
+import msg_types
 
 from errors import *
 
@@ -26,11 +27,17 @@ def id_generator(size=8, chars=string.ascii_letters + string.digits):
 
 
 class CARPCase:
-    def __init__(self, zip_data, cid=0):
+    def __init__(self, zip_data, cid=0, ctype=msg_types.CARP, dataset=json.loads('{}')):
         self.cid = cid
+        self.ctype = ctype
         self._zipdata = zip_data
+        self._dataset = dataset
         self._tempdir = os.path.join(TMP_DIR, id_generator())
         self._container = None
+        self._stdout = b''
+        self._stderr = b''
+        self._timedout = False
+        self._statuscode = -1
 
     def __enter__(self):
         # Load data
@@ -200,7 +207,23 @@ class CARPCase:
                 _stderr = b''
         finally:
             self._container.remove(force=True)
+        self._stdout = _stdout
+        self._stderr = _stderr
+        self._timedout = timedout
+        self._statuscode = statuscode
         return timedout, _stdout, _stderr, statuscode
+
+    async def check_imp_result(self):
+        if self._timedout:
+            return False, 0., 'Timed out'
+        if self._statuscode != 0:
+            return False, 0., 'Exit code is not zero'
+        if not self._stdout:
+            return False, 0., 'No output'
+        stdout = self._stdout.decode('utf8')
+        network = self._dataset['network']
+        # TODO: check imp result
+        return True, 0., 'Solution accepted'
 
     def close(self):
         try:
