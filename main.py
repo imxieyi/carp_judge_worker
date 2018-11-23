@@ -42,6 +42,7 @@ async def __message_handler():
 async def __judge_worker(idx):
     while True:
         obj = await judge_queue.get()
+        cid = ''
         try:
             cid = obj['cid']
             data = base64.b64decode(obj['data'])
@@ -94,6 +95,12 @@ async def __judge_worker(idx):
         except Exception as e:
             logging.error('[{}] {}'.format(idx, e))
             traceback.print_exc()
+            ret = {
+                'cid': cid,
+                'type': CASE_ERROR,
+                'message': str(e)
+            }
+            await send_queue.put(json.dumps(ret))
 
 
 async def __message_dispatcher(ws):
