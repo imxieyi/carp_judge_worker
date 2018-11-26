@@ -116,8 +116,8 @@ class CARPCase:
                     data = file.read()
                     data.replace(b'\r', b'')
                     if item.endswith('.py'):
-                        data.replace('sys.exit(0)', 'print(\'sys.exit(0) removed\')')
-                        data.replace('exit(0)', 'print(\'exit(0) removed\')')
+                        data.replace(b'sys.exit(0)', b'print(\'sys.exit(0) removed\')')
+                        data.replace(b'exit(0)', b'print(\'exit(0) removed\')')
                     if item.endswith(self.entry):
                         data += b'\nprint(\'Fast exit injected by judge_worker\')' \
                                 b'\nimport sys' \
