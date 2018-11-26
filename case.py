@@ -167,7 +167,7 @@ class CARPCase:
             read_only=True,
             nano_cpus=self.cpu * 1000000000,
             mem_limit=str(self.memory) + 'm',
-            memswap_limit=str(self.memory) + 'm',
+            memswap_limit=str(int(self.memory * 1.5)) + 'm',
             oom_kill_disable=False,
             pids_limit=64,
             network_mode='none',
