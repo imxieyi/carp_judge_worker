@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+import msg_types
 from case import CARPCase
 
 
@@ -116,6 +117,33 @@ class TestJunkFileCase(unittest.TestCase):
             timedout, stdout, stderr, exitcode = await self.case.run()
             print(len(stdout))
             print(len(stderr))
+        self.loop.run_until_complete(asyncio.wait([run_main()]))
+
+    def tearDown(self):
+        self.case.close()
+        self.loop.close()
+
+
+class TestIMPCase(unittest.TestCase):
+
+    def setUp(self):
+        with open('./examples/data_imp.zip', 'rb') as zipfile:
+            self.case = CARPCase(zipfile.read(), ctype=msg_types.IMP).__enter__()
+        with open('./examples/network.txt', 'r') as network:
+            self.case._dataset = {
+                'network': network.read()
+            }
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+
+    def test_run(self):
+        async def run_main():
+            timedout, stdout, stderr, exitcode = await self.case.run()
+            print(len(stdout))
+            print(len(stderr))
+            valid, influence, reason = await self.case.check_imp_result()
+            self.assertTrue(valid)
+            self.assertTrue('Solution accepted')
         self.loop.run_until_complete(asyncio.wait([run_main()]))
 
     def tearDown(self):
