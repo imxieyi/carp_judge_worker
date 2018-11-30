@@ -116,13 +116,6 @@ class CARPCase:
                 with zipfile.open(item) as file:
                     data = file.read()
                     data.replace(b'\r', b'')
-                    if item.endswith(self.entry):
-                        data += b'\nprint(\'Fast exit injected by judge_worker\')' \
-                                b'\nimport sys' \
-                                b'\nsys.stdout.flush()' \
-                                b'\nsys.stderr.flush()' \
-                                b'\nimport os' \
-                                b'\nos._exit(0)\n'
                     outfile.write(data)
         # Prepare arguments
         if self.data:
