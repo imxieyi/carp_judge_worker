@@ -231,7 +231,7 @@ class CARPCase:
         stdout = self._stdout.decode('utf8')
         network = self._dataset['network']
         seed_count = self._dataset['seedCount']
-        reason = 'Solution accepted'
+        reason = ''
         valid = False
         try:
             result = estimate(network, stdout, seed_count)
