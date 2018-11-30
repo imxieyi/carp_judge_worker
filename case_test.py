@@ -151,5 +151,15 @@ class TestIMPCase(unittest.TestCase):
         self.loop.close()
 
 
+class TestISE(unittest.TestCase):
+    def test_run(self):
+        from Influence_estimater.estimater import estimate
+        with open('./examples/network.txt', 'r') as network:
+            dataset = network.read()
+        with open('./examples/seeds.txt', 'r') as seeds:
+            seedset = seeds.read()
+        result = estimate(dataset, seedset, multiprocess=2)
+        self.assertAlmostEqual(result, 19.20, places=2)
+
 if __name__ == '__main__':
     unittest.main()

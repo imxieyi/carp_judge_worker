@@ -11,6 +11,7 @@ from zipfile import ZipFile
 import msg_types
 
 from errors import *
+from Influence_estimater.estimater import estimate, SolutionError
 
 IMAGE_NAME = 'carp_judge'
 TMP_DIR = '/tmp/carp_judge'
@@ -229,9 +230,17 @@ class CARPCase:
             return False, 0., 'No output'
         stdout = self._stdout.decode('utf8')
         network = self._dataset['network']
-        # TODO: check imp result
-        return True, 0., 'Solution accepted'
-
+        seed_count = self._dataset['seedCount']
+        reason = 'Solution accepted'
+        valid = False
+        try:
+            result = estimate(network, stdout, seed_count)
+            valid = True
+        except SolutionError as err:
+            reason = err.get_reason()
+        finally:
+            result = 0
+        return valid, result, reason
     def close(self):
         try:
             self._container.remove(force=True)
