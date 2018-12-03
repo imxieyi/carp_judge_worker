@@ -228,7 +228,7 @@ class CARPCase:
         result = 0.
         valid = False
         try:
-            result = await estimate_async(network, stdout, seed_count)
+            result = await estimate_async(network, stdout, seed_count, mode=self.model)
             valid = True
             reason = 'Solution accepted'
         except SolutionError as err:
