@@ -64,6 +64,13 @@ def estimate(network, seeds, seed_count, mode='IC', multiprocess=1, random_seed=
     graph.load_from_file(networkio)
     seeds = loadseeds(seedsio, seed_count)
 
+    # Check valid seeds
+    for s in seeds:
+        if s not in graph.nodes:
+            err = SolutionError()
+            err.set_reason('Invalid seed: ' + str(s))
+            raise err
+
     estimaters = list()
     solution_receiver = Queue()
     results = [None] * multiprocess
@@ -150,6 +157,7 @@ class InfluenceNetwork(DiGraph):
 
     def __init__(self):
         DiGraph.__init__(self)
+        self.nodes = set()
         self.spec = {'nodes': -1, 'edges': -1}
 
     def load_from_file(self, filed):
@@ -162,6 +170,8 @@ class InfluenceNetwork(DiGraph):
         for line in lines[1:]:
             data = line.split()
             if len(data) == 3:
+                self.nodes.add(int(data[0]))
+                self.nodes.add(int(data[1]))
                 self.add_weighted_edge(
                     (int(data[0]), int(data[1])), float(data[2]))
 
@@ -183,7 +193,7 @@ def loadseeds(filed, seed_count):
                 raise err
     if len(seeds) != seed_count:
         err = SolutionError()
-        err.set_reason("Too many or too less seeds.")
+        err.set_reason("Wrong number of seeds")
         raise err
     return seeds
 
