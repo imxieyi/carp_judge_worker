@@ -46,8 +46,8 @@ from concurrent.futures import ProcessPoolExecutor
 async def estimate_async(network, seeds, seed_count, mode='IC', multiprocess=1, random_seed='88010123'):
     # Can set executor to None if a default has been set for loop
     loop = asyncio.get_event_loop()
-    result, err = await loop.run_in_executor(ProcessPoolExecutor(), estimate, network, seeds, seed_count, mode, multiprocess, random_seed)
-    return result, err
+    result = await loop.run_in_executor(ProcessPoolExecutor(), estimate, network, seeds, seed_count, mode, multiprocess, random_seed)
+    return result
 
 
 def estimate(network, seeds, seed_count, mode='IC', multiprocess=1, random_seed='88010123'):

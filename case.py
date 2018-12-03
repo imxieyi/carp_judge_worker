@@ -225,15 +225,16 @@ class CARPCase:
         network = self._dataset['network']
         seed_count = self._dataset['seedCount']
         reason = ''
+        result = 0.
         valid = False
         try:
-            result = estimate_async(network, stdout, seed_count)
+            result = await estimate_async(network, stdout, seed_count)
             valid = True
+            reason = 'Solution accepted'
         except SolutionError as err:
             reason = err.get_reason()
-        finally:
-            result = 0
         return valid, result, reason
+
     def close(self):
         try:
             self._container.remove(force=True)

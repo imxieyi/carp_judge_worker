@@ -131,7 +131,8 @@ class TestIMPCase(unittest.TestCase):
             self.case = CARPCase(zipfile.read(), ctype=msg_types.IMP).__enter__()
         with open('./examples/network.txt', 'r') as network:
             self.case._dataset = {
-                'network': network.read()
+                'network': network.read(),
+                'seedCount': 5
             }
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
@@ -142,8 +143,9 @@ class TestIMPCase(unittest.TestCase):
             print(len(stdout))
             print(len(stderr))
             valid, influence, reason = await self.case.check_imp_result()
+            print(influence)
             self.assertTrue(valid)
-            self.assertTrue('Solution accepted')
+            self.assertEquals('Solution accepted', reason)
         self.loop.run_until_complete(asyncio.wait([run_main()]))
 
     def tearDown(self):
