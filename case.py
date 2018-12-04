@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import msg_types
 
 from errors import *
-from Influence_estimater.estimater import estimate, SolutionError
+from influence_estimater.estimater import estimate_async, SolutionError
 
 IMAGE_NAME = 'carp_judge'
 TMP_DIR = '/tmp/carp_judge'
@@ -227,7 +227,7 @@ class CARPCase:
         reason = ''
         valid = False
         try:
-            result = estimate(network, stdout, seed_count)
+            result = estimate_async(network, stdout, seed_count)
             valid = True
         except SolutionError as err:
             reason = err.get_reason()

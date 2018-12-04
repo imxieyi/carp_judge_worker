@@ -153,13 +153,25 @@ class TestIMPCase(unittest.TestCase):
 
 class TestISE(unittest.TestCase):
     def test_run(self):
-        from Influence_estimater.estimater import estimate
+        from influence_estimater.estimater import estimate_async
         with open('./examples/network.txt', 'r') as network:
             dataset = network.read()
         with open('./examples/seeds.txt', 'r') as seeds:
             seedset = seeds.read()
-        result = estimate(dataset, seedset, multiprocess=2)
-        self.assertAlmostEqual(result, 19.20, places=2)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(None)
+        async def run_main():
+            try:
+                result = await estimate_async(dataset, seedset, seed_count=2, multiprocess=2)
+            except Exception as err:
+                print(err)
+            finally:
+                result = 0
+            print(result)
+            self.assertAlmostEqual(result, 19.20, places=2)
+        self.loop.run_until_complete(asyncio.wait([run_main()]))
+        
+        
 
 if __name__ == '__main__':
     unittest.main()

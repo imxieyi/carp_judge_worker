@@ -36,82 +36,27 @@ import threading
 import sys
 from threading import Thread
 import queue as q2
-from multiprocessing import Process, Queue
-from .utils.digraph import DiGraph
-from .utils.esitimater import Estimater
+from multiprocessing import Process, Queue, Pool
+from influence_estimater.utils.digraph import DiGraph
+from influence_estimater.utils.esitimater import Estimater
 import io
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
 
-N_PROCESSORS = 8
+async def estimate_async(network, seeds, seed_count, mode='IC', multiprocess=1, random_seed='88010123'):
+    # Can set executor to None if a default has been set for loop
+    loop = asyncio.get_event_loop()
+    result, err = await loop.run_in_executor(ProcessPoolExecutor(), estimate, network, seeds, seed_count, mode, multiprocess, random_seed)
+    return result, err
 
-
-def main():
-    '''
-    decode the parameters
-    '''
-    start = time.time()
-    parser = argparse.ArgumentParser(
-        description='Program for Influence Spread Computation\nCoded by Edward FANG')
-    parser.add_argument('-i', metavar='social_network', type=argparse.FileType('r'),
-                        required=True, help='the absolute path of the social network file')
-    parser.add_argument('-s', metavar='seed_set', type=argparse.FileType('r'),
-                        required=True, help='the absolute path of the seed set file')
-    parser.add_argument('-m', metavar='diffusion_model',
-                        required=True, help='can only be IC or LT')
-    parser.add_argument('-b', metavar='termination_type', type=int,
-                        required=True, help='specifies the termination manner')
-    parser.add_argument('-t', metavar='time_budget', type=int,
-                        help='allowed time for tha algorithm, in second')
-    parser.add_argument('-r', metavar='random_seed',
-                        help='random seed for stochastic algorithm')
-    parser.add_argument('-d', help='debug mode', action="store_true")
-    args = parser.parse_args()
-    if args.d:
-        logging.basicConfig(level=logging.DEBUG)
-    graph = InfluenceNetwork()
-    graph.load_from_file(args.i)
-    seeds = loadseeds(args.s)
-    termination_type = args.b
-    time_limit = args.t
-    logging.debug("%s, %s", termination_type, time_limit)
-    args.i.close()
-    args.s.close()
-    random_seed = args.r
-    estimaters = list()
-    solution_receiver = Queue()
-    results = [None] * N_PROCESSORS
-    thread1 = solution_updater(
-        solution_receiver, results)
-    thread1.start()
-
-    # multi processors processing
-    for idx in range(N_PROCESSORS):
-        if random_seed:
-            unique_seed = random_seed + str(idx)
-        else:
-            unique_seed = None
-        proc = Process(target=start_estimater, args=(
-            graph, seeds, args.m, solution_receiver, idx, termination_type, unique_seed))
-        estimaters.append(proc)
-        proc.start()
-        begin = (time.time() - start)
-
-    if termination_type == 1 and time_limit is not None:
-        # start a thread for timing
-        thread2 = Thread(target=time_up_sig, args=(time_limit, begin, estimaters))
-        thread2.daemon = True
-        thread2.start()
-    # exit
-    for proc in estimaters:
-        proc.join()
-    thread1.stop()
-    print(str(sum(results) / N_PROCESSORS))
-    sys.stdout.flush()
 
 def estimate(network, seeds, seed_count, mode='IC', multiprocess=1, random_seed='88010123'):
     '''
     network: string
     seeds: string
     '''
+    #err_info = None
+    #try:
     start = time.time()
     networkio = io.StringIO(network)
     seedsio = io.StringIO(seeds)
@@ -136,12 +81,18 @@ def estimate(network, seeds, seed_count, mode='IC', multiprocess=1, random_seed=
             graph, seeds, mode, solution_receiver, idx, unique_seed, int(10000/multiprocess)))
         estimaters.append(proc)
         proc.start()
-
     # exit
     for proc in estimaters:
         proc.join()
     thread1.stop()
-    return sum(results)/multiprocess
+    result = sum(results)/multiprocess
+    # except SolutionError as err:
+    #     err_info = err
+    # except Exception as err:
+    #     err_info = err
+    # finally:
+    #     result = 0
+    return result#, err_info
 
 
 def start_estimater(graph, seeds, mode, solution_receiver, processid, random_seed, sim_round):
@@ -227,19 +178,22 @@ def loadseeds(filed, seed_count):
             try:
                 seeds.add(int(data[0]))
             except ValueError:
-                raise SolutionError("Non Int in the output.")
+                err = SolutionError()
+                err.set_reason("Non Int in the output.")
+                raise err
     if len(seeds) != seed_count:
-        raise SolutionError("Too much or too less seeds.")
+        err = SolutionError()
+        err.set_reason("Too many or too less seeds.")
+        raise err
     return seeds
 
 class SolutionError(Exception):
-    def __init__(self, reason):
+    def __init__(self):
         super(SolutionError, self).__init__()
+        self.reason = ""
+
+    def set_reason(self, reason):
         self.reason = reason
 
     def get_reason(self):
         return self.reason
-
-
-if __name__ == '__main__':
-    main()
