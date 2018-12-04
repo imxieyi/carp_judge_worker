@@ -63,6 +63,7 @@ async def __judge_worker(idx):
                 stderr_overflow = False
                 stdout = stdout.decode('utf8')
                 stderr = stderr.decode('utf8')
+                finish_time = time.time()
                 if len(stdout) > config.log_limit_bytes:
                     stdout = stdout[-config.log_limit_bytes:]
                     stdout_overflow = True
@@ -84,7 +85,7 @@ async def __judge_worker(idx):
                     'stderr': stderr,
                     'stderr_overflow': stderr_overflow,
                     'exitcode': exitcode,
-                    'timestamp': time.time(),
+                    'timestamp': finish_time,
                     'valid': valid,
                     'influence': influence,
                     'reason': reason
