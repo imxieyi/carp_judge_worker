@@ -211,7 +211,7 @@ def inactivate(verties, status):
         for vertex in verties:
             status[vertex] = False
 
-async def estimate_async(network, seeds, seed_count, model='IC', multiprocess=2, random_seed='88010123'):
+async def estimate_async(network, seeds, seed_count, model='IC', multiprocess=8, random_seed='88010123'):
     # Can set executor to None if a default has been set for loop
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(ProcessPoolExecutor(), estimate, network, seeds, seed_count, model, multiprocess, random_seed)
