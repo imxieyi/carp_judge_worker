@@ -182,32 +182,29 @@ class CARPCase:
                 }
             }
         )
-        try:
-            timedout, response = await self._wait_container()
-            statuscode = -1
-            if timedout:
-                try:
-                    self._container.kill()
-                except:
-                    pass
-            else:
-                statuscode = response['StatusCode']
-            if stdout:
-                _stdout = self._container.logs(
-                    stdout=True,
-                    stderr=False
-                )
-            else:
-                _stdout = b''
-            if stderr:
-                _stderr = self._container.logs(
-                    stdout=False,
-                    stderr=True
-                )
-            else:
-                _stderr = b''
-        finally:
-            self._container.remove(force=True)
+        timedout, response = await self._wait_container()
+        statuscode = -1
+        if timedout:
+            try:
+                self._container.kill()
+            except:
+                pass
+        else:
+            statuscode = response['StatusCode']
+        if stdout:
+            _stdout = self._container.logs(
+                stdout=True,
+                stderr=False
+            )
+        else:
+            _stdout = b''
+        if stderr:
+            _stderr = self._container.logs(
+                stdout=False,
+                stderr=True
+            )
+        else:
+            _stderr = b''
         self._stdout = _stdout
         self._stderr = _stderr
         self._timedout = timedout
