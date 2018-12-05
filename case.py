@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import msg_types
 
 from errors import *
-from influence_estimater.estimater import estimate_async, SolutionError
+from ie import estimate_async, SolutionError
 
 IMAGE_NAME = 'carp_judge'
 TMP_DIR = '/tmp/carp_judge'

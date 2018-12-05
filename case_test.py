@@ -2,6 +2,7 @@ import asyncio
 import unittest
 import msg_types
 from case import CARPCase
+from ie import estimate, estimate_async, SolutionError
 
 
 class TestAPlusBCase(unittest.TestCase):
@@ -155,7 +156,6 @@ class TestIMPCase(unittest.TestCase):
 
 class TestISE(unittest.TestCase):
     def test_run(self):
-        from influence_estimater.estimater import estimate_async
         with open('./examples/network.txt', 'r') as network:
             dataset = network.read()
         with open('./examples/seeds.txt', 'r') as seeds:
@@ -163,17 +163,29 @@ class TestISE(unittest.TestCase):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
         async def run_main():
+            result = 0
             try:
-                result = await estimate_async(dataset, seedset, seed_count=2, multiprocess=2)
+                result = await estimate_async(dataset, seedset, 2)
             except Exception as err:
                 print(err)
-            finally:
-                result = 0
-            print(result)
-            self.assertAlmostEqual(result, 19.20, places=2)
+            self.assertAlmostEqual(result, 19.21, places=1)
         self.loop.run_until_complete(asyncio.wait([run_main()]))
-        
-        
+           
+
+class TestISESync(unittest.TestCase):
+    def test_run(self):
+        with open('./examples/network.txt', 'r') as network:
+            dataset = network.read()
+        with open('./examples/seeds.txt', 'r') as seeds:
+            seedset = seeds.read()
+
+        try:
+            result = estimate(dataset, seedset, seed_count=2, multiprocess=2)
+        except SolutionError as err:
+            print(err.get_reason())
+            result = 0
+            
+        self.assertAlmostEqual(result, 19.2, places=1)
 
 if __name__ == '__main__':
     unittest.main()
