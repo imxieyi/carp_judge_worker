@@ -214,6 +214,8 @@ class CARPCase:
     async def check_imp_result(self):
         if self._timedout:
             return False, 0., 'Timed out'
+        if self._statuscode == 137:
+            return False, 0., 'Killed (Out of memory)'
         if self._statuscode != 0:
             return False, 0., 'Exit code is not zero'
         if not self._stdout:
