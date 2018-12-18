@@ -165,7 +165,7 @@ async def main():
             logging.info('Cookie: ' + cookie)
             logging.info('Connecting to ' + config.websocket_url)
             headers = {'Cookie': cookie}
-            async with websockets.connect(config.websocket_url, extra_headers=headers) as ws:
+            async with websockets.connect(config.websocket_url, extra_headers=headers, max_size=2 ** 24) as ws:
                 logging.info('Connected')
                 # Create tasks
                 handler_task = asyncio.ensure_future(__message_handler())
